@@ -1,124 +1,80 @@
 import pygame
+import sys
+BLUE = (0,0,255)
+class Menu:
+    def __init__(self):
+        pygame.init()
+        pygame.font.init()
+        self.width=1064
+        self.height =712
+        self.options = {}
+        self.clicked = False
+        self.command = None
+        self.screen = pygame.display.set_mode((self.width,self.height))
+        pygame.display.set_caption("Menu")
+       
 
-class Menu():
-    def __init__(self, game):
-        self.game = game
-        self.mid_w, self.mid_h = self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2
-        self.run_display = True
-        self.cursor_rect = pygame.Rect(0, 0, 20, 20)
-        self.offset = - 100
+    def draw_text(self, text, font_name, size, color, x, y, align="topleft"):
+        font = pygame.font.Font(font_name, size)
+        text_surface = font.render(text, True, color)
+        text_rect = text_surface.get_rect(**{align: (x, y)})
+        self.screen.blit(text_surface, text_rect)
 
-    def draw_cursor(self):
-        self.game.draw_text('*', 15, self.cursor_rect.x, self.cursor_rect.y)
+    def run(self):
+        self.running = True
+        while self.running:
+            self.events()
+            self.update()
+            self.draw()
+        return self.command
 
-    def blit_screen(self):
-        self.game.window.blit(self.game.display, (0, 0))
+    def add_option(self,label,width,height,x,y,command):
+        surface = pygame.Surface((width,height))
+        surface.fill((255,255,255))
+        rect = pygame.Rect(x,y,width,height)
+        self.options[label] = {
+                                'label':label,
+                                'surface':surface,
+                                'rect':rect,
+                                'command':command
+                            }
+    def update(self):
+        for option in self.options:
+            if self.options[option]['rect'].collidepoint((self.mx,self.my)):
+                self.options[option]['surface'].set_alpha(255)
+                if self.clicked:
+                    self.running = False
+                    self.command = self.options[option]['command']
+            else:
+                self.options[option]['surface'].set_alpha(0)
+    def events(self):
+        self.mx,self.my = pygame.mouse.get_pos()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                self.clicked=True
+            else:
+                self.clicked=False
+    
+    def draw(self):
+        self.screen.fill((0,0,0))
+        self.draw_text("Menu",self.font,50,(255,0,0),self.width//2, 50,align="center")
+        for option in self.options:
+            self.screen.blit(self.options[option]["surface"], self.options[option]["rect"])
+            self.draw_text(self.options[option]["label"],self.font,50,(255,0,0),self.options[option]["rect"].x, self.options[option]["rect"].y)
         pygame.display.update()
-        self.game.reset_keys()
-
-class MainMenu(Menu):
-    def __init__(self, game):
-        Menu.__init__(self, game)
-        self.state = "Start"
-        self.startx, self.starty = self.mid_w, self.mid_h + 30
-        self.optionsx, self.optionsy = self.mid_w, self.mid_h + 50
-        self.creditsx, self.creditsy = self.mid_w, self.mid_h + 70
-        self.cursor_rect.midtop = (self.startx + self.offset, self.starty)
-
-    def display_menu(self):
-        self.run_display = True
-        while self.run_display:
-            self.game.check_events()
-            self.check_input()
-            self.game.display.fill(self.game.BLACK)
-            self.game.draw_text('Main Menu', 20, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 - 20)
-            self.game.draw_text("Start Game", 20, self.startx, self.starty)
-            self.game.draw_text("Options", 20, self.optionsx, self.optionsy)
-            self.game.draw_text("Credits", 20, self.creditsx, self.creditsy)
-            self.draw_cursor()
-            self.blit_screen()
-
-
-    def move_cursor(self):
-        if self.game.DOWN_KEY:
-            if self.state == 'Start':
-                self.cursor_rect.midtop = (self.optionsx + self.offset, self.optionsy)
-                self.state = 'Options'
-            elif self.state == 'Options':
-                self.cursor_rect.midtop = (self.creditsx + self.offset, self.creditsy)
-                self.state = 'Credits'
-            elif self.state == 'Credits':
-                self.cursor_rect.midtop = (self.startx + self.offset, self.starty)
-                self.state = 'Start'
-        elif self.game.UP_KEY:
-            if self.state == 'Start':
-                self.cursor_rect.midtop = (self.creditsx + self.offset, self.creditsy)
-                self.state = 'Credits'
-            elif self.state == 'Options':
-                self.cursor_rect.midtop = (self.startx + self.offset, self.starty)
-                self.state = 'Start'
-            elif self.state == 'Credits':
-                self.cursor_rect.midtop = (self.optionsx + self.offset, self.optionsy)
-                self.state = 'Options'
-
-    def check_input(self):
-        self.move_cursor()
-        if self.game.START_KEY:
-            if self.state == 'Start':
-                self.game.playing = True
-            elif self.state == 'Options':
-                self.game.curr_menu = self.game.options
-            elif self.state == 'Credits':
-                self.game.curr_menu = self.game.credits
-            self.run_display = False
-
-class OptionsMenu(Menu):
-    def __init__(self, game):
-        Menu.__init__(self, game)
-        self.state = 'Volume'
-        self.volx, self.voly = self.mid_w, self.mid_h + 20
-        self.controlsx, self.controlsy = self.mid_w, self.mid_h + 40
-        self.cursor_rect.midtop = (self.volx + self.offset, self.voly)
-
-    def display_menu(self):
-        self.run_display = True
-        while self.run_display:
-            self.game.check_events()
-            self.check_input()
-            self.game.display.fill((0, 0, 0))
-            self.game.draw_text('Options', 20, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 - 30)
-            self.game.draw_text("Volume", 15, self.volx, self.voly)
-            self.game.draw_text("Controls", 15, self.controlsx, self.controlsy)
-            self.draw_cursor()
-            self.blit_screen()
-
-    def check_input(self):
-        if self.game.BACK_KEY:
-            self.game.curr_menu = self.game.main_menu
-            self.run_display = False
-        elif self.game.UP_KEY or self.game.DOWN_KEY:
-            if self.state == 'Volume':
-                self.state = 'Controls'
-                self.cursor_rect.midtop = (self.controlsx + self.offset, self.controlsy)
-            elif self.state == 'Controls':
-                self.state = 'Volume'
-                self.cursor_rect.midtop = (self.volx + self.offset, self.voly)
-        elif self.game.START_KEY:
-            # TO-DO: Create a Volume Menu and a Controls Menu
-            pass
-
-class CreditsMenu(Menu):
-    def __init__(self, game):
-        Menu.__init__(self, game)
-
-    def display_menu(self):
-        self.run_display = True
-        while self.run_display:
-            self.game.check_events()
-            if self.game.START_KEY or self.game.BACK_KEY:
-                self.game.curr_menu = self.game.main_menu
-                self.run_display = False
-            self.game.display.fill(self.game.BLACK)
-            self.game.draw_text('Credits', 20, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 - 20)
-            self.game.draw_text('Made by me', 15, self.game.DISPLAY_W / 2, self.game.DISPLAY_H / 2 + 10)
-            self.blit_screen()
+m= Menu()
+m.add_option("PLAY",500,50,m.width//2,300,"play")
+m.add_option("SETTINGS",500,50,m.width//2,300,"settings")
+m.add_option("EXIT",500,50,m.width//2,350,"exit")
+command = m.run()
+if command == "play":
+    print('play')
+elif command == "settings":
+    print('settings')    
+elif command == "exit":
+    print('exit')
+else:
+    print(command)
